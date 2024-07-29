@@ -19,8 +19,7 @@ tags: [K-NN,Data Preprocessing,Data Cleaning]
 
  #### 텍스트 셀에 사용할수 있는 마크다운  
 
- ![alt text](asset/collab.png)
- 
+ ![alt text](../assets/png/collab.png)
  ## Chapter 01-3 마켓과 머신러닝  
  #### 생선 분류 문제  
  - 1.도미 데이터
@@ -38,7 +37,7 @@ plt.ylabel('weight')
 plt.show  
 ```
 시각화 결과 
-![Scatter Plot Result](asset/scatter.png)
+![Scatter Plot Result](../assets/png/scatter.png)
 
 - 3.도미,빙어 같이 산점도 찍기 
 ```
@@ -48,7 +47,7 @@ plt.xlabel('length')
 plt.ylabel('weight')
 plt.show()
 ```
-![빙어,도미 plot result](asset/bind_scatter.png)  
+![빙어,도미 plot result](../assets/png/bind_scatter.png)  
 
 - 4.K-NN분석(k-최근접 이웃)
 
@@ -81,7 +80,7 @@ kn49.score(fish_data,fish_target) #0,71428
 - 지도학습은 정답(라벨링)이 필요하다.  
 - 지도 학습에서는 데이터와 정답을 입력(input)과 타깃(target)이라 함 이를 합쳐서 훈련데이터(training set)이라 부른다.
 - Target변수를 제외한 나머지 독립변수들을 특성(Feature)이라한다.  
-![alt text](asset/supervised_data_set.png)
+![alt text](../assets/png/supervised_data_set.png)
 - 만약 정답이 없으면 비지도 학습 알고리즘을 사용해야한다.  
 ### 훈련세트와 테스트 세트
 - 준비된 데이터 셋을 Test set과 Train set으로 나누어 평가하는 것이 일반적이다. 보통 이미 준비된 데이터 중 일부를 떼어내어 활용한 것을 Test set보다는 Validation set이라고 부르는 것이 일반적 그리고 새로 들어온 데이터를 Test set이라고 부르는 것이 일반적이긴 하다.  
@@ -141,7 +140,7 @@ plt.xlabel('length')
 plt.ylabel ('weight)
 plt.show()
 ```
-![alt text](asset/randomsample_scatter.png)
+![alt text](../assets/png/randomsample_scatter.png)
 결과를 보면 train_set과 test_set이 잘 mix된 것을 알 수 있다.
 - randomsampling 후 KNN모델 이용  
 ```
@@ -164,7 +163,7 @@ np.column_stack(([1,2,3],[4,5,6]))
 fish_data=np.column_stack((fish_length,fish_weight)) 
 ```
 - 행으로 연결시키면 column_stack() ,열로 연결시키면 concatenate()
-![alt text](asset/np.colum_stack,np.conccatenate.png)
+![alt text](../assets/png/np.colum_stack,np.conccatenate.png)
 
 #### sklearn을 활용한 Ramdomsampleing
 편리하게 train_set과 test_set을 나눌 수 있는 메소드 이용  
@@ -209,7 +208,7 @@ plt.xlabel('length')
 plt.ylabel('weight')
 plt.show()
 ```
-![alt text](asset/scatter_2.png)
+![alt text](../assets/png/scatter_2.png)
 - 산점도를 확인한 결과 KNeighborsClassifier 클래스는 주어진 샘플 중에서 가장 가까운 이웃을 찾아준다. 따라서 기본 Default n_neighbors=5이기 때문에 5개의 이웃이 반환 됨. 
 - 그러면 가장 가까운 5개를 알 수 있는 방법은 뭐가 있을까? 이 또한 산점도를 이용한다
 ```
@@ -219,7 +218,7 @@ plt.scatter(train_input[indexes,0],train_input[indexes,1],marker='D')
 plt.xlabel('length')
 plt.ylabel('weight')
 ```
-![alt text](asset/scatter_3.png)
+![alt text](../assets/png/scatter_3.png)
 - 시각화를 해서 [25,150]의 NN 5개를 확인 할 수 있었음
 
 - 문제 해결 방법: 거리 확인한 후 모델 조정  
@@ -233,7 +232,7 @@ plt.xlabel('length')
 plt.ylabel('weight')
 plt.show()
 ````
-![alt text](asset/scatter_4.png)
+![alt text](../assets/png/scatter_4.png)
 
 결과를 확인해보니, 생선의 길이 보다는 생선의 무게만이 고려의 대상이 된다.  
 즉, 두 특성의 스케일이 다름을 알 수 있다. 데이터를 표현하는 기준이 다르면 알고리즘이 올바르게 예측할 수 없다. 알고리즘이 거리 기반일 때 더욱 그렇다. 따라서 데이터 Scaling이 필요하다.
@@ -244,7 +243,7 @@ mean=np.mean(train_input,axis=0)
 std=np.std(train_input,axis=0)
 train_scaled = (train_input - mean)/std
 ```
-![alt text](asset/data_scaling.png)
+![alt text](../assets/png/data_scaling.png)
 
 - 다시 산점도 그려보기
 ```
@@ -254,7 +253,7 @@ plt.xlabel('length')
 plt.ylabel('weight')
 plt.show()
 ```
-![alt text](asset/scatter_5.png)
+![alt text](../assets/png/scatter_5.png)
 - 산점도를 그려본 결과, 왼쪽에 편향되어 있음.또한 오른쪽 맨 위에 샘플[20,150]이 있음. 이를 해결하기 위해 똑같이 test sample도 표준화 시켜야함.
 
 ```
@@ -265,7 +264,7 @@ plt.xlabel('length')
 plt.yalbel('weight')
 plt.show()
 ```
-![alt text](asset/scatter_6.png)
+![alt text](../assets/png/scatter_6.png)
 - 산점도 결과  x,y축이 scaling 됨.  
 이를 통해서 다시 k-nn 모델 훈련
 
