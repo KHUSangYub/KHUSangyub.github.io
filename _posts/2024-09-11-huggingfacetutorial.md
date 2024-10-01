@@ -5,6 +5,7 @@ date:   2024-09-11 12:00:00 +0900
 categories: [LLM]
 tags: [LLM , DeepLearning , Huggingface]
 ---
+
 # Hugging face Tutorial NLP 정리 
 https://huggingface.co/learn/nlp-course/ko/chapter1/1 (tutorial URL)
 
