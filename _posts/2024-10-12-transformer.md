@@ -97,7 +97,142 @@ Transformer에서 가장 중요한 메커니즘은 , Attention 메커니즘이�
 
 
 
+## Encodr 실제 구현하기 
 
+```python
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+# 멀티-헤드 어텐션 레이어
+class MultiHeadAttention(nn.Module):
+    def __init__(self, d_model, num_heads):
+        super(MultiHeadAttention, self).__init__()
+        self.num_heads = num_heads
+        self.d_model = d_model
+        
+        assert d_model % num_heads == 0  # d_model은 num_heads로 나누어 떨어져야 합니다.
+        
+        self.depth = d_model // num_heads
+        
+        # 쿼리, 키, 밸류에 대한 선형 레이어
+        self.wq = nn.Linear(d_model, d_model)
+        self.wk = nn.Linear(d_model, d_model)
+        self.wv = nn.Linear(d_model, d_model)
+        
+        self.fc = nn.Linear(d_model, d_model)
+        
+    def split_heads(self, x, batch_size):
+        """마지막 차원을 (num_heads, depth)로 나눕니다"""
+        x = x.view(batch_size, -1, self.num_heads, self.depth)
+        return x.permute(0, 2, 1, 3)  # (batch_size, num_heads, seq_len, depth)
+
+    def forward(self, query, key, value, mask=None):
+        batch_size = query.size(0)
+        
+        # 선형 변환
+        query = self.wq(query)
+        key = self.wk(key)
+        value = self.wv(value)
+        
+        # 멀티-헤드로 분할
+        query = self.split_heads(query, batch_size)
+        key = self.split_heads(key, batch_size)
+        value = self.split_heads(value, batch_size)
+        
+        # 스케일 조정된 점곱 어텐션
+        score = torch.matmul(query, key.transpose(-2, -1)) / torch.sqrt(torch.tensor(self.depth, dtype=torch.float32))
+        if mask is not None:
+            score = score.masked_fill(mask == 0, -1e9)  # 마스크 적용
+        attention_weights = F.softmax(score, dim=-1)
+        output = torch.matmul(attention_weights, value)  # 어텐션 적용
+        
+        # 헤드 결합
+        output = output.permute(0, 2, 1, 3).contiguous()
+        output = output.view(batch_size, -1, self.d_model)  # (batch_size, seq_len, d_model)
+        
+        # 최종 선형 레이어
+        output = self.fc(output)
+        return output, attention_weights
+
+
+# 피드-포워드 네트워크
+class FeedForward(nn.Module):
+    def __init__(self, d_model, dff):
+        super(FeedForward, self).__init__()
+        self.fc1 = nn.Linear(d_model, dff)
+        self.fc2 = nn.Linear(dff, d_model)
+        
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
+
+# 인코더 레이어
+class EncoderLayer(nn.Module):
+    def __init__(self, d_model, num_heads, dff, dropout_rate=0.1):
+        super(EncoderLayer, self).__init__()
+        self.mha = MultiHeadAttention(d_model, num_heads)
+        self.ffn = FeedForward(d_model, dff)
+        
+        self.layernorm1 = nn.LayerNorm(d_model)
+        self.layernorm2 = nn.LayerNorm(d_model)
+        
+        self.dropout1 = nn.Dropout(dropout_rate)
+        self.dropout2 = nn.Dropout(dropout_rate)
+        
+    def forward(self, x, mask=None):
+        # 멀티-헤드 어텐션
+        attn_output, _ = self.mha(x, x, x, mask)  # 자기-어텐션
+        attn_output = self.dropout1(attn_output)
+        out1 = self.layernorm1(x + attn_output)  # 잔차 연결(Residual connection) + LayerNorm
+        
+        # 피드-포워드 네트워크
+        ffn_output = self.ffn(out1)
+        ffn_output = self.dropout2(ffn_output)
+        out2 = self.layernorm2(out1 + ffn_output)  # 잔차 연결(Residual connection) + LayerNorm
+        
+        return out2
+
+
+# 인코더
+class Encoder(nn.Module):
+    def __init__(self, num_layers, d_model, num_heads, dff, input_vocab_size, maximum_position_encoding, dropout_rate=0.1):
+        super(Encoder, self).__init__()
+        self.d_model = d_model
+        self.num_layers = num_layers
+        
+        self.embedding = nn.Embedding(input_vocab_size, d_model)
+        self.positional_encoding = self.create_positional_encoding(maximum_position_encoding, d_model)
+        
+        self.enc_layers = nn.ModuleList([EncoderLayer(d_model, num_heads, dff, dropout_rate) for _ in range(num_layers)])
+        self.dropout = nn.Dropout(dropout_rate)
+        
+    def create_positional_encoding(self, max_len, d_model):
+        pos = torch.arange(0, max_len).unsqueeze(1)
+        i = torch.arange(0, d_model).unsqueeze(0)
+        angle_rates = 1 / torch.pow(10000, (2 * (i // 2)) / torch.tensor(d_model, dtype=torch.float32))
+        pos_enc = pos * angle_rates
+        pos_enc[:, 0::2] = torch.sin(pos_enc[:, 0::2])
+        pos_enc[:, 1::2] = torch.cos(pos_enc[:, 1::2])
+        return pos_enc.unsqueeze(0)  # 형태: (1, max_len, d_model)
+    
+    def forward(self, x, mask=None):
+        seq_len = x.size(1)
+        x = self.embedding(x)  # (batch_size, seq_len, d_model)
+        x *= torch.sqrt(torch.tensor(self.d_model, dtype=torch.float32))  # 임베딩 크기 조정
+        x += self.positional_encoding[:, :seq_len, :].to(x.device)  # 위치 인코딩 추가
+        
+        x = self.dropout(x)
+        
+        for i in range(self.num_layers):
+            x = self.enc_layers[i](x, mask)
+        
+        return x  # (batch_size, seq_len, d_model)
+```
+
+이 코드는 Transformer의 인코더 부분을 구현하며, 각 레이어는 멀티-헤드 자기-어텐션과 피드-포워드 네트워크로 구성됩니다.
 
 
 
